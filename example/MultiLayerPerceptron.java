@@ -103,6 +103,35 @@ public class MultiLayerPerceptron {
         }
         return out;
 
+    }
+
+    public double[] testar(double[] x_in, double[] y){
+        double[] x = new double[x_in.length + 1];
+        x[x_in.length] = 1;
+        for (int i = 1; i < x.length; i++) {
+            x[i] = x_in[i - 1];
         }
 
+        double[] hidden = new double[qtdHidden+1];
+
+        for (int h = 0; h < wh[0].length; h++) {
+            double u = 0;
+            for (int i = 0; i < wh.length; i++) {
+                u+=x[i]* wh[i][h];
+            }
+            hidden[h] = 1/ (1 + Math.exp(-u));
+        }
+        hidden[hidden.length-1] = 1;
+
+        double [] out = new double[qtdOut];
+        for (int j = 0; j < w_theta[0].length; j++) {
+            double u = 0;
+            for (int h = 0; h < w_theta.length; h++) {
+                u += hidden[h]* w_theta[h][j];
+            }
+            out[j] = 1/ (1 + Math.exp(-u));
+        }
+
+        return out;
     }
+}

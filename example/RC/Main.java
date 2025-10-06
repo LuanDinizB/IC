@@ -70,7 +70,6 @@ class Perceptrons {
             int predicted = argMax(scores);
             double[] probs = softmax(scores);
 
-            // imprimir informações detalhadas
             System.out.printf("Amostra: %s Esperado=%d Previsto=%d Probabilidades=%s\n",
                     Arrays.toString(s.features), s.label, predicted, Arrays.toString(probs));
 
@@ -81,7 +80,7 @@ class Perceptrons {
             }
         }
 
-        System.out.println("\nResultado Final:");
+        System.out.println("\nResultado Final");
         System.out.println("Acertos: " + correct);
         System.out.println("Erros (amostras incorretas): " + errors);
         System.out.println("Soma total dos erros: " + errors);
@@ -176,8 +175,8 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
-        List<Samples> data = loadIris("example/RC/iris.csv");
-        // List<Samples> data = loadHorse("example/horse-colic.data");
+       // List<Samples> data = loadIris("example/RC/iris.csv");
+         List<Samples> data = loadHorse("example/horse-colic.data");
 
         Collections.shuffle(data, new Random(42));
         int trainSize = (int) (data.size() * 0.75);

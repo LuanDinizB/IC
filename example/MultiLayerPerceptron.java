@@ -80,7 +80,7 @@ public class MultiLayerPerceptron {
 
         double[] delta_theta = new double[qtdOut];
         for (int j = 0; j < qtdOut; j++) {
-            delta_theta[j] = out[j]*(1-out[j])*(y[j]-out[j]);
+            delta_theta[j] = out[j]*(1-out[j])*Math.abs(1-out[j])*(y[j]-out[j]);
         }
         double[] delta_h = new double[qtdHidden];
         for (int h = 0; h < qtdHidden; h++) {

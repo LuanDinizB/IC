@@ -4,10 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -15,21 +12,18 @@ import static java.nio.file.Files.newBufferedReader;
 
 public class Main {
 
-        public static List<double[][]> lerArquivo(String caminhoArquivo, int numAmostras){
+    public static List<double[][]> lerArquivo(String caminhoArquivo, int numAmostras, int numLinha, int numValores) {
 
         List<double[][]> TREINO = new ArrayList<>();
-
-        double[][] x = new double[numAmostras][27];
-        double[][] y = new double[numAmostras][2];
-
+        double[][] x = new double[numAmostras][numLinha];
+        double[][] y = new double[numAmostras][numValores];
 
         try (Scanner sc = new Scanner(new File(caminhoArquivo))) {
-
             for (int l = 0; l < numAmostras; l++) {
-                for (int j = 0; j < 27; j++) {
+                for (int j = 0; j < numLinha; j++) {
                     x[l][j] = sc.nextDouble();
                 }
-                for (int j = 0; j < 2; j++) {
+                for (int j = 0; j < numValores; j++) {
                     y[l][j] = sc.nextDouble();
                 }
             }
@@ -46,7 +40,49 @@ public class Main {
         return TREINO;
     }
 
-    private static void normalizarDados(double[][] data) {
+    public static List<double[][]> lerArquivos(String caminhoArquivo, int numAmostras) {
+
+        final int NUM_FEATURES = 10;
+        final int NUM_CLASSES = 29;
+
+        List<double[][]> treino = new ArrayList<>();
+        double[][] x = new double[numAmostras][NUM_FEATURES];
+        double[][] y = new double[numAmostras][NUM_CLASSES];
+
+        try (Scanner sc = new Scanner(new File(caminhoArquivo))) {
+            sc.useLocale(Locale.forLanguageTag("pt-BR"));
+
+            if (sc.hasNextLine()) {
+                sc.nextLine();
+            }
+
+            for (int l = 0; l < numAmostras; l++) {
+                for (int j = 0; j < NUM_FEATURES; j++) {
+                    if (sc.hasNextDouble()) {
+                        x[l][j] = sc.nextDouble();
+                    }
+                }
+                for (int j = 0; j < NUM_CLASSES; j++) {
+                    if (sc.hasNextDouble()) {
+                        y[l][j] = sc.nextDouble();
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("ERRO AO LER ARQUIVO DE TREINO: " + caminhoArquivo);
+            e.printStackTrace();
+        }
+
+        normalizarDados(x);
+
+        for (int i = 0; i < numAmostras; i++) {
+            treino.add(new double[][]{x[i], y[i]});
+        }
+
+        return treino;
+    }
+
+    public static void normalizarDados(double[][] data) {
         if (data.length == 0) return;
         int numColunas = data[0].length;
         for (int j = 0; j < numColunas; j++) {
@@ -66,9 +102,7 @@ public class Main {
 
     public static List<String> read2(Path path, Charset cs) throws IOException {
         try (Stream<String> lines = Files.lines(path, cs)) {
-            return lines
-                    .map(line -> line + "&")
-                    .collect(Collectors.toList());
+            return lines.map(line -> line + "&").collect(Collectors.toList());
         }
     }
 
@@ -80,60 +114,59 @@ public class Main {
         Files.write(destinationPath, lines, StandardCharsets.UTF_8);
     }
 
-
-
     public static void main(String[] args) throws IOException {
 
-//        shuffleFileLines("example/horse-colic-treino.data", "example/horse-colic-treino-atualizado.data");
-
-
         try {
+            Scanner input = new Scanner(System.in);
+            System.out.println("Selecione a base de dados:");
+            System.out.println("1 - Horse Colic");
+            System.out.println("2 - Abalone");
+            System.out.print("Opção: ");
+            int escolha = input.nextInt();
 
-            double[][][] AND = new double[][][] {
-                    { { 0, 0 }, { 0 } },
-                    { { 0, 1 }, { 0 } },
-                    { { 1, 0 }, { 0 } },
-                    { { 1, 1 }, { 1 } }
-            };
+            double[][][] CAVALOTREINO = null;
+            double[][][] CAVALOTESTE = null;
+            MultiLayerPerceptron perceptron = null;
 
-            double[][][] XOR = new double[][][] {
-                    { { 0, 0 }, { 0 } },
-                    { { 0, 1 }, { 1 } },
-                    { { 1, 0 }, { 1 } },
-                    { { 1, 1 }, { 0 } }
-            };
+            if (escolha == 1) {
+                System.out.println("Carregando base Horse Colic...");
 
-            double[][][] ROBO = new double[][][] {
-                    { { 0, 0, 0 }, { 1, 1 } },
-                    { { 0, 0, 1 }, { 0, 1 } },
-                    { { 0, 1, 0 }, { 1, 0 } },
-                    { { 0, 1, 1 }, { 0, 1 } },
-                    { { 1, 0, 0 }, { 1, 0 } },
-                    { { 1, 0, 1 }, { 1, 0 } },
-                    { { 1, 1, 0 }, { 1, 0 } },
-                    { { 1, 1, 1 }, { 1, 0 } },
-            };
+                List<double[][]> listaTreino = lerArquivo("example/horse-colic-treino2.data", 225, 27, 2);
+                List<double[][]> listaTeste = lerArquivo("example/horse-colic-teste2.data", 75, 27, 2);
+
+                CAVALOTREINO = new double[listaTreino.size()][][];
+                CAVALOTESTE = new double[listaTeste.size()][][];
+
+                for (int i = 0; i < listaTreino.size(); i++) CAVALOTREINO[i] = listaTreino.get(i);
+                for (int i = 0; i < listaTeste.size(); i++) CAVALOTESTE[i] = listaTeste.get(i);
+
+                int qtdEntradas = CAVALOTREINO[0][0].length;
+                int qtdSaidas = CAVALOTREINO[0][1].length;
+
+                perceptron = new MultiLayerPerceptron(qtdEntradas, 10, qtdSaidas, 0.03);
+
+            } else if (escolha == 2) {
+                System.out.println("Carregando base Abalone...");
+
+                List<double[][]> listaTreino = lerArquivos("example/abalone.train", 3139);
+                List<double[][]> listaTeste = lerArquivos("example/abalone.test", 1048);
 
 
-            List<double[][]> listaTeste = lerArquivo("example/horse-colic-teste2.data", 75);
-            List<double[][]> listaTreino = lerArquivo("example/horse-colic-treino2.data", 225);
+                CAVALOTREINO = new double[listaTreino.size()][][];
+                CAVALOTESTE = new double[listaTeste.size()][][];
 
-            double[][][] CAVALOTESTE = new double[listaTeste.size()][][];
-            double[][][] CAVALOTREINO = new double[listaTreino.size()][][];
+                for (int i = 0; i < listaTreino.size(); i++) CAVALOTREINO[i] = listaTreino.get(i);
+                for (int i = 0; i < listaTeste.size(); i++) CAVALOTESTE[i] = listaTeste.get(i);
 
-            for (int i = 0; i < listaTeste.size(); i++) {
-                CAVALOTESTE[i]= listaTeste.get(i);
+                int qtdEntradas = CAVALOTREINO[0][0].length;
+                int qtdSaidas = CAVALOTREINO[0][1].length;
+
+                perceptron = new MultiLayerPerceptron(qtdEntradas, 10, qtdSaidas, 0.3);
+            } else {
+                System.out.println("Opção inválida.");
+                return;
             }
-            for (int i = 0; i < listaTreino.size(); i++) {
-                CAVALOTREINO[i]= listaTreino.get(i);
-            }
 
-
-            int qtdEntradas = CAVALOTREINO[0][0].length;
-            int qtdSaidas = CAVALOTREINO[0][1].length;
-
-//            Perceptron perceptron = new Perceptron(qtdEntradas, qtdSaidas);
-            MultiLayerPerceptron perceptron = new MultiLayerPerceptron(qtdEntradas, qtdSaidas, 0.003);
             int numEpocas = 100000;
 
             for (int i = 0; i < numEpocas; i++) {
@@ -146,29 +179,27 @@ public class Main {
                     double[] x_amostra = CAVALOTREINO[j][0];
                     double[] y_amostra = CAVALOTREINO[j][1];
                     double[] O = perceptron.treinar(x_amostra, y_amostra);
+
                     double erroAproximacaoAmostra = 0.0;
-                    for (int k = 0; k < O.length; k++) {
+                    for (int k = 0; k < O.length; k++)
                         erroAproximacaoAmostra += Math.abs(y_amostra[k] - O[k]);
-                    }
                     erroAproximacaoEpoca += erroAproximacaoAmostra;
 
-                    double maior = -1;
-
-                    for (int z = 0; z < O.length; z++) {
-                        if(O[z] > maior) maior = O[z];
-                    }
-
-                    double threshHoldValue = maior;
-
-                    boolean amostraClassificadaErrada = false;
-                    for (int k = 0; k < O.length; k++) {
-                        double o_t = (O[k] >= threshHoldValue) ? 0.995 : 0.005;
-                        if (Math.abs(y_amostra[k] - o_t) > 0) {
-                            amostraClassificadaErrada = true;
-                            break;
+                    int indiceMaxSaida = 0;
+                    for (int k = 1; k < O.length; k++) {
+                        if (O[k] > O[indiceMaxSaida]) {
+                            indiceMaxSaida = k;
                         }
                     }
-                    if (amostraClassificadaErrada) {
+
+                    int indiceMaxEsperado = 0;
+                    for (int k = 1; k < y_amostra.length; k++) {
+                        if (y_amostra[k] > y_amostra[indiceMaxEsperado]) {
+                            indiceMaxEsperado = k;
+                        }
+                    }
+
+                    if (indiceMaxSaida != indiceMaxEsperado) {
                         erroClassificacaoEpoca++;
                     }
                 }
@@ -176,40 +207,40 @@ public class Main {
                     double[] x_amostra = CAVALOTESTE[j][0];
                     double[] y_amostra = CAVALOTESTE[j][1];
                     double[] OT = perceptron.testar(x_amostra, y_amostra);
+
                     double erroAproximacaoTesteAmostra = 0.0;
-                    for (int k = 0; k < OT.length; k++) {
+                    for (int k = 0; k < OT.length; k++)
                         erroAproximacaoTesteAmostra += Math.abs(y_amostra[k] - OT[k]);
-                    }
                     erroAproximacaoTesteEpoca += erroAproximacaoTesteAmostra;
 
-                    double maior = -1;
-                    for (int z = 0; z < OT.length; z++) {
-                        if(OT[z] > maior) maior = OT[z];
-                    }
-
-                    double threshHoldValue = maior;
-
-                    boolean amostraTesteClassificadaErrada = false;
-                    for (int k = 0; k < OT.length; k++) {
-                        double o_t = (OT[k] >= threshHoldValue) ? 0.995 : 0.005;
-                        if (Math.abs(y_amostra[k] - o_t) > 0) {
-                            amostraTesteClassificadaErrada = true;
-                            break;
+                    int indiceMaxSaida = 0;
+                    for (int k = 1; k < OT.length; k++) {
+                        if (OT[k] > OT[indiceMaxSaida]) {
+                            indiceMaxSaida = k;
                         }
                     }
-                    if (amostraTesteClassificadaErrada) {
-                        erroClassificacaoTesteEpoca++;
+
+                    int indiceMaxEsperado = 0;
+                    for (int k = 1; k < y_amostra.length; k++) {
+                        if (y_amostra[k] > y_amostra[indiceMaxEsperado]) {
+                            indiceMaxEsperado = k;
+                        }
                     }
 
+                    if (indiceMaxSaida != indiceMaxEsperado) {
+                        erroClassificacaoTesteEpoca++;
+                    }
                 }
-                System.out.printf("%d - %.4f - %.0f - %.4f - %.0f\n", (i + 1), erroAproximacaoEpoca, erroClassificacaoEpoca, erroAproximacaoTesteEpoca, erroClassificacaoTesteEpoca);
-            }
 
+                System.out.printf("%d - %.4f - %.0f - %.4f - %.0f\n",
+                        (i + 1), erroAproximacaoEpoca, erroClassificacaoEpoca,
+                        erroAproximacaoTesteEpoca, erroClassificacaoTesteEpoca);
+            }
 
         } catch (Exception e) {
             System.err.println("Ocorreu um erro inesperado durante a execução.");
             e.printStackTrace();
         }
-
     }
+
 }

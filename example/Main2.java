@@ -1,4 +1,5 @@
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -8,9 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.nio.file.Files.newBufferedReader;
-
-public class Main {
+public class Main2 {
 
     public static List<double[][]> lerArquivo(String caminhoArquivo, int numAmostras, int numLinha, int numValores) {
 
@@ -143,7 +142,7 @@ public class Main {
                 int qtdEntradas = CAVALOTREINO[0][0].length;
                 int qtdSaidas = CAVALOTREINO[0][1].length;
 
-                perceptron = new MultiLayerPerceptron(qtdEntradas, 10, qtdSaidas, 0.03);
+                perceptron = new MultiLayerPerceptron(qtdEntradas, 10, qtdSaidas, 0.3);
 
             } else if (escolha == 2) {
                 System.out.println("Carregando base Abalone...");
@@ -161,7 +160,8 @@ public class Main {
                 int qtdEntradas = CAVALOTREINO[0][0].length;
                 int qtdSaidas = CAVALOTREINO[0][1].length;
 
-                perceptron = new MultiLayerPerceptron(qtdEntradas, 10, qtdSaidas, 0.3);
+                // Inicializa o MLP
+                perceptron = new MultiLayerPerceptron(qtdEntradas, 10, qtdSaidas, 0.01);
             } else {
                 System.out.println("Opção inválida.");
                 return;
@@ -185,24 +185,22 @@ public class Main {
                         erroAproximacaoAmostra += Math.abs(y_amostra[k] - O[k]);
                     erroAproximacaoEpoca += erroAproximacaoAmostra;
 
-                    int indiceMaxSaida = 0;
-                    for (int k = 1; k < O.length; k++) {
-                        if (O[k] > O[indiceMaxSaida]) {
-                            indiceMaxSaida = k;
+                    double maior = -1;
+                    for (double v : O) if (v > maior) maior = v;
+                    double threshHoldValue = maior;
+
+                    boolean amostraErrada = false;
+                    for (int k = 0; k < O.length; k++) {
+                        double o_t = (O[k] >= threshHoldValue) ? 0.995 : 0.005;
+                        if (Math.abs(y_amostra[k] - o_t) > 0) {
+                            amostraErrada = true;
+                            break;
                         }
                     }
-
-                    int indiceMaxEsperado = 0;
-                    for (int k = 1; k < y_amostra.length; k++) {
-                        if (y_amostra[k] > y_amostra[indiceMaxEsperado]) {
-                            indiceMaxEsperado = k;
-                        }
-                    }
-
-                    if (indiceMaxSaida != indiceMaxEsperado) {
-                        erroClassificacaoEpoca++;
-                    }
+                    if (amostraErrada) erroClassificacaoEpoca++;
                 }
+
+                // Teste
                 for (int j = 0; j < CAVALOTESTE.length; j++) {
                     double[] x_amostra = CAVALOTESTE[j][0];
                     double[] y_amostra = CAVALOTESTE[j][1];
@@ -213,23 +211,19 @@ public class Main {
                         erroAproximacaoTesteAmostra += Math.abs(y_amostra[k] - OT[k]);
                     erroAproximacaoTesteEpoca += erroAproximacaoTesteAmostra;
 
-                    int indiceMaxSaida = 0;
-                    for (int k = 1; k < OT.length; k++) {
-                        if (OT[k] > OT[indiceMaxSaida]) {
-                            indiceMaxSaida = k;
+                    double maior = -1;
+                    for (double v : OT) if (v > maior) maior = v;
+                    double threshHoldValue = maior;
+
+                    boolean amostraTesteErrada = false;
+                    for (int k = 0; k < OT.length; k++) {
+                        double o_t = (OT[k] >= threshHoldValue) ? 0.995 : 0.005;
+                        if (Math.abs(y_amostra[k] - o_t) > 0) {
+                            amostraTesteErrada = true;
+                            break;
                         }
                     }
-
-                    int indiceMaxEsperado = 0;
-                    for (int k = 1; k < y_amostra.length; k++) {
-                        if (y_amostra[k] > y_amostra[indiceMaxEsperado]) {
-                            indiceMaxEsperado = k;
-                        }
-                    }
-
-                    if (indiceMaxSaida != indiceMaxEsperado) {
-                        erroClassificacaoTesteEpoca++;
-                    }
+                    if (amostraTesteErrada) erroClassificacaoTesteEpoca++;
                 }
 
                 System.out.printf("%d - %.4f - %.0f - %.4f - %.0f\n",
@@ -242,5 +236,4 @@ public class Main {
             e.printStackTrace();
         }
     }
-
 }
